@@ -1,18 +1,19 @@
 const jwt = require("jsonwebtoken");
 
 const protectAdmin = (req, res, next) => {
-  const authHeader = req.headers.authorization;
+  const token = req.cookies.adminToken;
 
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+  if (!token) {
     return res.status(401).json({
       message: "Not authorized",
     });
   }
 
-  const token = authHeader.split(" ")[1];
-
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET
+    );
 
     if (decoded.role !== "admin") {
       return res.status(403).json({
@@ -21,10 +22,11 @@ const protectAdmin = (req, res, next) => {
     }
 
     req.admin = decoded;
+
     next();
   } catch {
     return res.status(401).json({
-      message: "Invalid or expired token",
+      message: "Invalid or expired session",
     });
   }
 };

@@ -11,29 +11,17 @@ function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const token = localStorage.getItem("adminToken");
-
+  // Fetch all leads
   useEffect(() => {
-    if (!token) {
-      navigate("/admin/login");
-      return;
-    }
-
     const fetchLeads = async () => {
       try {
-        const response = await api.get(
-  "/api/leads",
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+        setLoading(true);
+
+        const response = await api.get("/api/leads");
 
         setLeads(response.data);
       } catch (error) {
         if (error.response?.status === 401) {
-          localStorage.removeItem("adminToken");
           navigate("/admin/login");
           return;
         }
@@ -45,18 +33,16 @@ function AdminDashboard() {
     };
 
     fetchLeads();
-  }, [navigate, token]);
+  }, [navigate]);
 
+  // Update lead status
   const updateStatus = async (leadId, status) => {
     try {
+      setError("");
+
       const response = await api.patch(
-  `/api/leads/${leadId}/status`,
-        { status },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        `/api/leads/${leadId}/status`,
+        { status }
       );
 
       setLeads((currentLeads) =>
@@ -66,7 +52,6 @@ function AdminDashboard() {
       );
     } catch (error) {
       if (error.response?.status === 401) {
-        localStorage.removeItem("adminToken");
         navigate("/admin/login");
         return;
       }
@@ -75,11 +60,18 @@ function AdminDashboard() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("adminToken");
-    navigate("/admin/login");
+  // Logout admin
+  const handleLogout = async () => {
+    try {
+      await api.post("/api/auth/logout");
+    } catch (error) {
+      console.error("Logout failed:", error);
+    } finally {
+      navigate("/admin/login");
+    }
   };
 
+  // Search
   const filteredLeads = leads.filter((lead) => {
     const query = search.toLowerCase();
 
@@ -104,7 +96,11 @@ function AdminDashboard() {
   ).length;
 
   if (loading) {
-    return <div className="dashboard-message">Loading leads...</div>;
+    return (
+      <div className="dashboard-message">
+        Loading leads...
+      </div>
+    );
   }
 
   return (
@@ -118,7 +114,10 @@ function AdminDashboard() {
           <p>Lead Management Dashboard</p>
         </div>
 
-        <button className="logout-button" onClick={handleLogout}>
+        <button
+          className="logout-button"
+          onClick={handleLogout}
+        >
           Logout
         </button>
       </header>
@@ -126,7 +125,10 @@ function AdminDashboard() {
       <main className="dashboard-content">
         <div className="dashboard-title">
           <div>
-            <p className="eyebrow">ADMIN DASHBOARD</p>
+            <p className="eyebrow">
+              ADMIN DASHBOARD
+            </p>
+
             <h1>Leads</h1>
           </div>
 
@@ -161,12 +163,17 @@ function AdminDashboard() {
           </div>
         </div>
 
-        {error && <div className="server-error">{error}</div>}
+        {error && (
+          <div className="server-error">
+            {error}
+          </div>
+        )}
 
         <div className="leads-table-container">
           {filteredLeads.length === 0 ? (
             <div className="empty-state">
               <h3>No leads found</h3>
+
               <p>
                 {search
                   ? "Try another search."
@@ -200,7 +207,9 @@ function AdminDashboard() {
                     </td>
 
                     <td>
-                      {new Date(lead.createdAt).toLocaleDateString()}
+                      {new Date(
+                        lead.createdAt
+                      ).toLocaleDateString()}
                     </td>
 
                     <td>
@@ -208,13 +217,20 @@ function AdminDashboard() {
                         className={`status-select status-${lead.status.toLowerCase()}`}
                         value={lead.status}
                         onChange={(e) =>
-                          updateStatus(lead._id, e.target.value)
+                          updateStatus(
+                            lead._id,
+                            e.target.value
+                          )
                         }
                       >
-                        <option value="New">New</option>
+                        <option value="New">
+                          New
+                        </option>
+
                         <option value="Contacted">
                           Contacted
                         </option>
+
                         <option value="Closed">
                           Closed
                         </option>

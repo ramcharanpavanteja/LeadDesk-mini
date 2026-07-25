@@ -36,7 +36,7 @@ function AdminLogin() {
 
       const response = await api.post("/api/auth/login", formData);
 
-      localStorage.setItem("adminToken", response.data.token);
+    await api.post("/api/auth/login", formData);
 
       navigate("/admin");
     } catch (error) {
